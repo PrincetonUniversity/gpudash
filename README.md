@@ -2,10 +2,6 @@
 
 The `gpudash` command is part of the [Jobstats platform](https://github.com/PrincetonUniversity/jobstats). The `gpudash` command displays a GPU utilization dashboard for the last hour:
 
-<p align="center">
-  <img src="images/gpudash.png" width="880" title="gpudash example">
-</p>
-
 ![gpudash example](images/gpudash.png)
 
 The dashboard can be generated for a specific user:
@@ -79,6 +75,16 @@ find ${DATA} -type f -mmin +70 -exec rm -f {} \;
 ```
 
 ### 2a. Get the UID and username
+
+```
+###########################################################################
+# convert uid to netid
+###########################################################################
+# $ getent passwd | awk -F":" '{print $3","$1}' > master.uid
+with open(f"{BASE}/master.uid") as infile:
+  reader = csv.reader(infile)
+  uid2user = {rows[0]:rows[1] for rows in reader}
+```
 
 ### 3. Extract the data from the Prometheus files
 
