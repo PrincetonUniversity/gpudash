@@ -2,6 +2,10 @@
 
 The `gpudash` command is part of the [Jobstats platform](https://github.com/PrincetonUniversity/jobstats). The `gpudash` command displays a GPU utilization dashboard for the last hour:
 
+<p align="center">
+  <img src="images/gpudash.png" width="880" title="gpudash example">
+</p>
+
 ![gpudash example](images/gpudash.png)
 
 The dashboard can be generated for a specific user:
