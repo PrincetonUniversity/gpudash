@@ -1,0 +1,277 @@
+#!/usr/bin/python3
+
+import sys
+import os
+os.environ['OMP_NUM_THREADS'] = "1"
+import argparse
+import textwrap
+import json
+import subprocess
+from functools import partial
+from glob import glob
+from datetime import datetime, timedelta
+from socket import gethostname
+from blessed import Terminal
+
+def second_tues_of_month(year, month):
+  """Return a date object for the second Tuesday of the current month."""
+  import calendar
+  c = calendar.Calendar(firstweekday=calendar.SUNDAY)
+  monthcal = c.monthdatescalendar(year, month)
+  all_tues_of_month = [day for week in monthcal for day in week if \
+                       day.weekday() == calendar.TUESDAY and \
+                       day.month == month]
+  second_tues = all_tues_of_month[1]
+  hours_24_clock, minutes = (6, 0)  # six AM
+  return datetime(second_tues.year, second_tues.month, second_tues.day, hours_24_clock, minutes)
+
+# add white space with text in the center
+def center(maxlen, txt):
+  n = len(txt)
+  if n > maxlen: txt = txt[:maxlen]
+  pre  = " " * int(0.5 * (maxlen - n))
+  post = " " * (maxlen - n - len(pre))
+  return pre + txt + post
+
+def leftpad(txt):
+  n = len(txt)
+  return " " * (maxnode - n) + txt
+
+# get list of nodes while ignoring those offline
+def get_nodes(all_nodes, cmd):
+  try:
+    output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, check=True, timeout=3)
+    lines = output.stdout.decode("utf-8").split('\n')
+  except:
+    return (all_nodes, [])
+  else:
+    nodes = []
+    reserved = []
+    for line in lines:
+      if line and not any([term in line for term in ["drain", "down", "boot"]]) and line.split()[0] in all_nodes:
+        nodes.append(line.split()[0])
+      if line and (("resv" in line) or ("mig" in line)):
+        reserved.append(line.split()[0])
+    return (nodes, reserved)
+
+def colorize(user, util):
+  if user == "OFFLINE": return padding(user)
+  text = f"{user}:{util}"
+  if text == "root:0":
+    return term.on_gray + term.black + padding("IDLE") + term.normal
+  if text == "root:N/A":
+    return term.on_gray + term.black + padding("NO INFO") + term.normal
+  white = term.color_rgb(255,255,255)
+  util = int(util) if util.isdigit() else -1
+  if util == -1:
+    return term.on_gray + term.black + padding(text) + term.normal
+  elif util == 0:
+    return term.on_black + white + padding(text) + term.normal
+  elif util < 25:
+    return term.on_blue + white + padding(text) + term.normal
+  elif util < 50:
+    return term.on_cyan + term.black + padding(text) + term.normal
+  elif util < 75:
+    return term.on_color_rgb(255,165,0) + term.black + padding(text) + term.normal
+  elif util <= 100:
+    return term.on_color_rgb(255,0,0) + white + padding(text) + term.normal
+  else:
+    return padding(text)
+
+def construct_dashboard(host):
+  s = "\n"
+  day_date = str(datetime.now().strftime("%a %b %-d"))
+  text = f"{title} UTILIZATION ({day_date})"
+  total_width = chars_per_cell * len(times) + maxnode + 3
+  s += center(total_width, text)
+  s += "\n\n"
+  # time labels at top of dashboard
+  s += " " * (maxnode + 3)
+  for t in times:
+    s += padding(t)
+  s += "\n"
+  traverse_test_qos = ["traverse-k05g" + str(i) for i in [1, 2, 3, 4]]
+  # main dashboard
+  global founduser_all_nodes
+  founduser_all_nodes = False
+  for node in nodelist:
+    rows = ""
+    founduser_per_node = False
+    offline = 0
+    for gpu_index in [str(i) for i in range(gpus_per_node[node])]:
+      if gpu_index == "0":
+        rows += leftpad(node)
+      elif gpu_index == "1" and node in reserved_nodes:
+        if node in traverse_test_qos:
+          rows += leftpad("(test QOS)  ")
+        elif "della-" in node and "g" in node:
+          rows += leftpad("(MIG/res) ")
+        else:
+          rows += leftpad("(reserved)")
+      else:
+        rows += " " * maxnode
+      rows += " " + gpu_index + " "
+      for j, t in enumerate(times):
+        if (t, node, gpu_index) in stats:
+          username, util = stats[(t, node, gpu_index)]
+        else:
+          username, util = ("NODE LOST", 0)
+        if args.netid == username:
+          founduser_per_node = True
+          founduser_all_nodes = True
+        if j == len(times) - 1 and username == "OFFLINE": offline += 1
+        rows += colorize(username, util)
+      rows += "\n"
+    if (args.netid == "-1" or founduser_per_node) and offline < gpus_per_node[node]:
+      s += rows
+  # time labels at bottom of dashboard
+  if not host.startswith("della") and args.netid == "-1":
+    s += " " * (maxnode + 3)
+    for t in times:
+      s += padding(t)
+    s += "\n"
+  # no jobs found for single user
+  if args.netid != "-1" and not founduser_all_nodes:
+    s += center(total_width, f"No GPU jobs found for {args.netid}\n")
+  return s
+
+def legend():
+  offset = " " * (maxnode + 3)
+  gu = "   " + term.normal  + " GPU utilization is "
+  s = ""
+  s += offset + term.on_black + gu + "0%\n"
+  s += offset + term.on_blue  + gu + "0-25%\n"
+  s += offset + term.on_cyan  + gu + "25-50%\n"
+  s += offset + term.on_color_rgb(255,165,0)  + gu + "50-75%\n"
+  s += offset + term.on_color_rgb(255,0,0)    + gu + "75-100%\n"
+  return s
+
+if __name__ == "__main__":
+
+  psr = argparse.ArgumentParser(
+    description="GPU utilization dashboard for the last hour",
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog=textwrap.dedent('''
+    Utilization is the percentage of time during a sampling window (< 1 second) that
+    a kernel was running on the GPU. The format of each entry in the dashboard is
+    username:utilization (e.g., aturing:90). Utilization varies between 0 and 100%.
+
+    Examples:
+
+      Show dashboard for all users:
+        $ gpudash
+
+      Show dashboard for the user aturing:
+        $ gpudash -u aturing
+
+      Show dashboard for all users without displaying legend:
+        $ gpudash -n
+
+      Show dashboard for the cryoem nodes:
+        $ gpudash -c
+
+      Show dashboard for the cryoem nodes for user aturing:
+        $ gpudash -c -u aturing
+    '''))
+  psr.add_argument('-u', type=str, action='store', dest='netid',
+    default='-1', help='create dashboard for a single user')
+  psr.add_argument('-n', '--no-legend', action='store_true', help='flag to hide the legend')
+  psr.add_argument('-c', '--cryoem',    action='store_true', help='flag to show cryoem nodes')
+  args = psr.parse_args()
+  show_legend = not args.no_legend
+  show_cryoem = args.cryoem
+
+  # exit if within 4 hours of downtime (which starts at 6 am) or before 2 pm
+  right_now = datetime.now()
+  downtime_6am = second_tues_of_month(right_now.year, right_now.month)
+  dt_seconds = (right_now - downtime_6am) / timedelta(seconds=1)
+  seconds_per_hour = 60 * 60
+  if (dt_seconds > -4 * seconds_per_hour) and (dt_seconds < 6 * seconds_per_hour):
+    print("\nThis command is not available due to downtime. Please try again after 12 PM (noon):")
+    print("    https://researchcomputing.princeton.edu/support/knowledge-base/job-priority#downtime\n")
+    sys.exit(0)
+
+  # load cluster-specific info
+  host = gethostname()
+  if host.startswith("della-gpu") or host.startswith("della8"):
+    title = "DELLA-GPU"
+    comp_nodes_base = "della-"
+    if show_cryoem:
+      all_nodes = [comp_nodes_base + "l0" + str(h) + "g" + str(g) for h in range(6, 10) for g in range(1, 10)]
+      all_nodes.remove("della-l07g1")
+      all_nodes.append("della-l06g10")
+      all_nodes.append("della-l06g11")
+      nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo -p cryoem --Node -h")
+      gpus_per_node = dict([(node, 4) for node in all_nodes])
+    else:
+      #import pdb; pdb.set_trace()
+      all_nodes = [comp_nodes_base + "i14g" + str(g) for g in range(1, 21)]
+      gpus_per_node = dict([(node, 2) for node in all_nodes])
+      all_nodes80 = [comp_nodes_base + f"l0{h}g{g}" for h in range(1, 5) for g in range(1, 17)] + \
+                    [comp_nodes_base + f"l05g{g}" for g in range(1, 7)]
+      gpus_per_node.update(dict([(node, 4) for node in all_nodes80]))
+      all_nodes += all_nodes80
+      nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo -p gpu,mig --Node -h")
+    maxnode = max(map(len, nodelist))
+    SBASE = "/scratch/.gpudash"
+  elif host.startswith("tigercpu") or host.startswith("tigergpu") or host.startswith("tiger-cryoem"):
+    title = "TigerGPU"
+    comp_nodes_base = "tiger-"
+    all_nodes = [comp_nodes_base + "i" + str(i) + 'g' + str(j + 1) for i in range(19, 24) for j in range(16)]
+    gpus_per_node = dict([(node, 4) for node in all_nodes])
+    nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo -p gpu --Node -h")
+    maxnode = max(map(len, nodelist))
+    SBASE = "/scratch/.gpudash"
+    if show_cryoem: print("Warning: -c, --cryoem flag not valid on tiger")
+  elif host.startswith("traverse"):
+    title = "TRAVERSE GPU"
+    comp_nodes_base = "traverse-k0"
+    all_nodes = [comp_nodes_base + str(i) + 'g' + str(j + 1) for i in [1, 2, 4, 5] for j in range(12)]
+    all_nodes.remove("traverse-k05g11")
+    all_nodes.remove("traverse-k05g12")
+    gpus_per_node = dict([(node, 4) for node in all_nodes])
+    nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo --Node -h")
+    maxnode = max(map(len, nodelist))
+    SBASE = "/scratch/.gpudash"
+    if show_cryoem: print("Warning: -c, --cryoem flag not valid on traverse")
+  else:
+    print(f"{host} is unknown. Please use della-gpu, tigercpu, tigergpu, tiger-cryoem or traverse.")
+    sys.exit(0)
+
+  # read column files
+  column_files = sorted(glob(f"{SBASE}/column.*"))
+  if column_files == []:
+    print(f"No column files were found in {SBASE}. Exiting ...")
+    sys.exit(0)
+
+  #{"timestamp": "1622344202", "host": "della-i14g15", "index": "0", "user": "OFFLINE", "util": "N/A", "jobid": "N/A"}
+  #{"timestamp": "1622344202", "host": "della-i14g15", "index": "1", "user": "OFFLINE", "util": "N/A", "jobid": "N/A"}
+  #{"timestamp": "1622344202", "host": "della-i14g19", "index": "0", "user": "root", "util": "0", "jobid": "0"}
+  #{"timestamp": "1622344202", "host": "della-i14g19", "index": "1", "user": "root", "util": "0", "jobid": "0"}
+  #{"timestamp": "1622344202", "host": "della-i14g20", "index": "0", "user": "gdolsten", "util": "40", "jobid": "34792230"}
+  #{"timestamp": "1622344202", "host": "della-i14g20", "index": "1", "user": "root", "util": "0", "jobid": "0"}
+
+  # create dictionary from column files
+  stats = {}
+  times = []
+  for column_file in column_files:
+    with open(column_file) as f:
+      for i, line in enumerate(f.readlines()):
+        d = json.loads(line)
+        if i == 0:
+          timestamp = d["timestamp"]
+          twelve_hour = datetime.fromtimestamp(int(timestamp)).strftime('%-I:%M %p')
+          times.append(twelve_hour)
+        stats[(twelve_hour, d["host"], d["index"])] = (d["user"], d["util"])
+
+  # construct and print dashboard
+  term = Terminal()
+  chars_per_cell = 14
+  padding = partial(center, chars_per_cell)
+  print(construct_dashboard(host))
+  if args.netid == "-1":
+    if show_legend:
+      print(legend())
+  else:
+    if show_legend and founduser_all_nodes:
+      print(legend())
