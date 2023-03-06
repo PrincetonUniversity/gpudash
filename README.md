@@ -68,10 +68,11 @@ find ${DATA} -type f -mmin +70 -exec rm -f {} \;
 /usr/licensed/anaconda3/2022.5/bin/python /home/jdh4/bin/gpus/extract.py
 ```
 
-### 2. Create an entry in crontab
+### 2. Create two entries in crontab
 
 ```
 0,10,20,30,40,50 * * * * /path/to/query_prometheus.sh > /dev/null 2>&1
+0 6 * * 1 getent passwd | awk -F":" '{print $3","$1}' > /path/to/uid2user.txt 2> /dev/null
 ```
 
 ### 2a. Get the UID and username
