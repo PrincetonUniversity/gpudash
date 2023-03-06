@@ -42,21 +42,31 @@ The `gpudash` command buiilds on the [https://github.com/PrincetonUniversity/job
 ### 1. Create a script to pull data from Prometheus:
 
 ```bash
+$ cat query_prometheus.sh
 #!/bin/bash
 
 DATA="/home/jdh4/bin/gpus/data"
+PROM_SERVER='http://vigilant2.sn17:8480/api/v1/query?query='
 printf -v SECS '%(%s)T' -1
 
 curl -s 'http://vigilant2.sn17:8480/api/v1/query?query=nvidia_gpu_duty_cycle' > ${DATA}/util.${SECS}
 curl -s 'http://vigilant2.sn17:8480/api/v1/query?query=nvidia_gpu_jobUid'     > ${DATA}/uid.${SECS}
 curl -s 'http://vigilant2.sn17:8480/api/v1/query?query=nvidia_gpu_jobId'      > ${DATA}/jobid.${SECS}
 
+# remove any data files that are greater or equal to 70 minutes old
 find ${DATA} -type f -mmin +70 -exec rm -f {} \;
 
+# extract the data from the Prometheus files
 /usr/licensed/anaconda3/2022.5/bin/python /home/jdh4/bin/gpus/extract.py
 ```
 
 ### 2. Create an entry in crontab
+
+```
+0,10,20,30,40,50 * * * * /path/to/query_prometheus.sh > /dev/null 2>&1
+```
+
+### 2a. Get the UID and username
 
 ### 3. Extract the data from the Prometheus files
 
