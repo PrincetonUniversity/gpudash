@@ -6,7 +6,7 @@ The `gpudash` command is part of the [Jobstats platform](https://github.com/Prin
 
 The dashboard can be generated for a specific user:
 
-![gpudash user example][images/gpudash_user.png]
+![gpudash user example](images/gpudash_user.png)
 
 Here is the help menu:
 
