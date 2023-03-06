@@ -37,9 +37,9 @@ Examples:
 
 ## Getting Started
 
-The `gpudash` command buiilds on the [https://github.com/PrincetonUniversity/jobstats](Jobstats) platform.
+The `gpudash` command buiilds on the [Jobstats platform](https://github.com/PrincetonUniversity/jobstats). To run the software it requires Python 3.6+ and version 1.17+ of the Python `blessed` package.
 
-### 1. Create a script to pull data from Prometheus:
+### 1. Create a script to pull data from Prometheus
 
 ```bash
 $ cat query_prometheus.sh
