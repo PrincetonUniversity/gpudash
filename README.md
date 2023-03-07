@@ -125,11 +125,18 @@ $ wget https://raw.githubusercontent.com/PrincetonUniversity/gpudash/main/gpudas
 $ chmod 755 gpudash
 ```
 
+Next, edit `gpudash` by entering the correct node names to display data for.
+
 With these steps in place, you can use the `gpudash` command:
 
 ```
 $ gpudash
 ```
+
+## Troubleshooting
+
+The two most commons problems are (1) setting the correct paths throughout the procedure and (2) installing the Python `blessed` package. You also need to specify the nodes to be displayed by `gpudash`.
+
 
 ## Getting Help
 
