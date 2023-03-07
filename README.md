@@ -72,7 +72,7 @@ python3 /path/to/extract.py
 
 The above script will generate column files with the format:
 
-```json
+```
 $ head -n 5 column.1
 {"timestamp": "1678144802", "host": "comp-g1", "index": "0", "user": "ft130", "util": "92", "jobid": "46034275"}
 {"timestamp": "1678144802", "host": "comp-g1", "index": "1", "user": "ft130", "util": "99", "jobid": "46015684"}
@@ -80,6 +80,8 @@ $ head -n 5 column.1
 {"timestamp": "1678144802", "host": "comp-g1", "index": "3", "user": "kt415", "util": "44", "jobid": "46048505"}
 {"timestamp": "1678144802", "host": "comp-g2", "index": "0", "user": "kt415", "util": "82", "jobid": "46015407"}
 ```
+
+The column files are read by `gpudash` to generate the dashboard.
 
 ### 2. Generate a CSV file called `uid2user.csv` containing UIDs and the corresponding usernames. Here is a sample of the file:
 
@@ -107,7 +109,21 @@ $ getent passwd | awk -F":" '{print $3","$1}' > /path/to/uid2user.txt
 
 The first entry above calls the script that queries the Prometheus server every 10 minutes. The second entry creates the CSV files of UIDs and usernames.
 
-### 3. Use gpudash
+### 4. Download gpudash
+
+`gpudash` is a pure Python code. It's only dependency is the `blessed` Python package. On Ubuntu Linux, this can be installed with:
+
+```bash
+$ apt-get install python-blessed
+```
+
+Then put `gpudash` in a local like `/usr/local/bin`:
+
+```
+$ cd /usr/local/bin
+$ wget https://raw.githubusercontent.com/PrincetonUniversity/gpudash/main/gpudash
+$ chmod 755 gpudash
+```
 
 With these steps in place, you can use the `gpudash` command:
 
