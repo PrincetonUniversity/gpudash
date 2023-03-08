@@ -107,7 +107,7 @@ $ getent passwd | awk -F":" '{print $3","$1}' > /path/to/uid2user.txt
 0 6 * * 1 getent passwd | awk -F":" '{print $3","$1}' > /path/to/uid2user.csv 2> /dev/null
 ```
 
-The first entry above calls the script that queries the Prometheus server every 10 minutes. The second entry creates the CSV files of UIDs and usernames.
+The first entry above calls the script that queries the Prometheus server every 10 minutes. The second entry creates the CSV files of UIDs and usernames on every Monday morning at 6 AM.
 
 ### 4. Download gpudash
 
@@ -125,7 +125,7 @@ $ wget https://raw.githubusercontent.com/PrincetonUniversity/gpudash/main/gpudas
 $ chmod 755 gpudash
 ```
 
-Next, edit `gpudash` by replacing `cluster1` with the beginning of the cluster name. Modify `all_nodes` to generate a list of compute node names. Lastly, set `SBASE` to the path containing the column files produced by `extract.py`.
+Next, edit `gpudash` by replacing `cluster1` with the beginning of the login node name. Modify `all_nodes` to generate a list of compute node names. Lastly, set `SBASE` to the path containing the column files produced by `extract.py` and make sure that the shebang line at the very top is pointing to `python3`.
 
 With these steps in place, you can use the `gpudash` command:
 
@@ -135,9 +135,9 @@ $ gpudash
 
 ## Troubleshooting
 
-The two most commons problems are (1) setting the correct paths throughout the procedure and (2) installing the Python `blessed` package. You also need to specify the nodes to be displayed by `gpudash`.
+The two most commons problems are (1) setting the correct paths throughout the procedure and (2) installing the Python `blessed` package.
 
 
 ## Getting Help
 
-Please post an issue on this repo. Extensions to the code are welcome.
+Please post an issue to this repo. Extensions to the code are welcome via pull requests.
