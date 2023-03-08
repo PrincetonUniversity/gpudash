@@ -1,6 +1,6 @@
 # gpudash
 
-The `gpudash` command is part of the [Jobstats platform](https://github.com/PrincetonUniversity/jobstats). The `gpudash` command displays a GPU utilization dashboard in text (no graphics) for the last hour:
+The `gpudash` command displays a GPU utilization dashboard in text (no graphics) for the last hour:
 
 ![gpudash example](images/gpudash.png)
 
@@ -8,7 +8,7 @@ The dashboard can be generated for a specific user:
 
 ![gpudash user example](images/gpudash_user.png)
 
-Here is the help menu:
+The `gpudash` command is part of the [Jobstats platform](https://github.com/PrincetonUniversity/jobstats). Here is the help menu:
 
 ```
 usage: gpudash [-h] [-u NETID] [-n] [-c]
@@ -19,7 +19,6 @@ optional arguments:
   -h, --help       show this help message and exit
   -u NETID         create dashboard for a single user
   -n, --no-legend  flag to hide the legend
-  -c, --cryoem     flag to show cryoem nodes
 
 Utilization is the percentage of time during a sampling window (< 1 second) that
 a kernel was running on the GPU. The format of each entry in the dashboard is
@@ -35,17 +34,11 @@ Examples:
 
   Show dashboard for all users without displaying legend:
     $ gpudash -n
-
-  Show dashboard for the cryoem nodes:
-    $ gpudash -c
-
-  Show dashboard for the cryoem nodes for user aturing:
-    $ gpudash -c -u aturing
 ```
 
 ## Getting Started
 
-The `gpudash` command buiilds on the [Jobstats platform](https://github.com/PrincetonUniversity/jobstats). To run the software it requires Python 3.6+ and version 1.17+ of the Python `blessed` package.
+The `gpudash` command builds on the [Jobstats platform](https://github.com/PrincetonUniversity/jobstats). To run the software it requires Python 3.6+ and version 1.17+ of the Python `blessed` package.
 
 ### 1. Create a script to pull data from Prometheus
 
