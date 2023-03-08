@@ -11,66 +11,36 @@ from socket import gethostname
 num_columns = 7
 
 host = gethostname()
-if host.startswith("della"):
-  comp_nodes_base = "della-"
+if host.startswith("cluster1"):
+  comp_nodes_base = "cluster1-"
   nodelist = [comp_nodes_base + "i14g" + str(g) for g in range(1, 21)]
-  nodelist80 = [comp_nodes_base + f"l0{h}g{g}" for h in range(1, 5) for g in range(1, 17)] + \
-               [comp_nodes_base + f"l05g{g}" for g in range(1, 7)]
-  # start cryoem
-  nodelist_cryo = [comp_nodes_base + "l0" + str(h) + "g" + str(g) for h in range(6, 10) for g in range(1, 10)]
-  nodelist_cryo.remove("della-l07g1")
-  nodelist_cryo.append("della-l06g10")
-  nodelist_cryo.append("della-l06g11")
-  # end cryoem
-  BASE = "/home/jdh4/bin/gpus"
+  gpus_per_node = 4
+  BASE = "/path/to/gpudash/data"
   SBASE = "/scratch/.gpudash"
-elif host.startswith("tigercpu") or host.startswith("tigergpu"):
-  comp_nodes_base = "tiger-i"
+elif host.startswith("cluster2"):
+  comp_nodes_base = "cluster2-"
   nodelist = [comp_nodes_base + str(i) + 'g' + str(j + 1) for i in range(19, 24) for j in range(16)]
   gpus_per_node = 4
-  BASE = "/home/jdh4/bin/gpus"
-  SBASE = "/scratch/.gpudash"
-elif host.startswith("traverse"):
-  comp_nodes_base = "traverse-k0"
-  nodelist = [comp_nodes_base + str(i) + 'g' + str(j + 1) for i in [1, 2, 4, 5] for j in range(12)]
-  nodelist.remove("traverse-k05g11"); nodelist.remove("traverse-k05g12")
-  gpus_per_node = 4
-  BASE = "/home/jdh4/bin/gpus"
+  BASE = "/path/to/gpudash/data"
   SBASE = "/scratch/.gpudash"
 else:
-  print(f"{host} is unknown. Try running on della-gpu, tigercpu, tigergpu or traverse. Exiting ...")
+  print(f"{host} is unknown. Exiting ...")
   sys.exit(0)
 
 ###########################################################################
 # convert uid to netid
 ###########################################################################
-# $ getent passwd | awk -F":" '{print $3","$1}' > master.uid
-with open(f"{BASE}/master.uid") as infile:
+# $ getent passwd | awk -F":" '{print $3","$1}' > uid2user.csv
+with open(f"{BASE}/uid2user.csv") as infile:
   reader = csv.reader(infile)
   uid2user = {rows[0]:rows[1] for rows in reader}
 
 # initialize dictionary
 # tuple is (username, util, jobid)
-if host.startswith("della"):
-  stats = {}
-  for node in nodelist:
-    gpus_per_node = 2
-    for gpu_index in range(gpus_per_node):
-      stats[(node, str(gpu_index))] = ("OFFLINE", "N/A", "N/A")
-  for node in nodelist80:
-    gpus_per_node = 4
-    for gpu_index in range(gpus_per_node):
-      stats[(node, str(gpu_index))] = ("OFFLINE", "N/A", "N/A")
-  for node in nodelist_cryo:
-    gpus_per_node = 4
-    for gpu_index in range(gpus_per_node):
-      stats[(node, str(gpu_index))] = ("OFFLINE", "N/A", "N/A")
-  nodelist += nodelist80 + nodelist_cryo
-else:
-  stats = {}
-  for node in nodelist:
-    for gpu_index in range(gpus_per_node):
-      stats[(node, str(gpu_index))] = ("OFFLINE", "N/A", "N/A")
+stats = {}
+for node in nodelist:
+  for gpu_index in range(gpus_per_node):
+    stats[(node, str(gpu_index))] = ("OFFLINE", "N/A", "N/A")
 
 # get latest timestamp
 timestamp        = str(max([int(filename.split(".")[1]) for filename in glob(f"{BASE}/data/util.*")]))
@@ -99,7 +69,8 @@ def update(stats, prop, idx):
         gpu_index = result["metric"]["minor_number"]
         value = result["value"][1]
         if prop == "uid":
-          value = uid2user[value] if value in uid2user else getent_passwd(value)
+          # value = uid2user[value] if value in uid2user else getent_passwd(value)
+          value = uid2user[value] if value in uid2user else value
         x = [stats[(hostname, gpu_index)][0], \
              stats[(hostname, gpu_index)][1], \
              stats[(hostname, gpu_index)][2]]
