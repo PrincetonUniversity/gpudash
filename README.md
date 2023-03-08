@@ -127,6 +127,18 @@ $ chmod 755 gpudash
 
 Next, edit `gpudash` by entering the correct node names to display data for.
 
+```python
+  if host.startswith("cluster1"):
+    title = "CLUSTER1-GPU"
+    comp_nodes_base = "cluster1-"
+    all_nodes = [comp_nodes_base + "i14g" + str(g) for g in range(1, 21)]
+    gpus_per_node = dict([(node, 2) for node in all_nodes])
+    #nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo --partition=gpu --Node -h")
+    nodelist, reserved_nodes = all_nodes, []
+    maxnode = max(map(len, nodelist))
+    SBASE = "/scratch/.gpudash"
+```
+
 With these steps in place, you can use the `gpudash` command:
 
 ```

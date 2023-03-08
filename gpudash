@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import sys
 import os
 os.environ['OMP_NUM_THREADS'] = "1"
@@ -90,7 +88,6 @@ def construct_dashboard(host):
   for t in times:
     s += padding(t)
   s += "\n"
-  traverse_test_qos = ["traverse-k05g" + str(i) for i in [1, 2, 3, 4]]
   # main dashboard
   global founduser_all_nodes
   founduser_all_nodes = False
@@ -102,12 +99,8 @@ def construct_dashboard(host):
       if gpu_index == "0":
         rows += leftpad(node)
       elif gpu_index == "1" and node in reserved_nodes:
-        if node in traverse_test_qos:
-          rows += leftpad("(test QOS)  ")
-        elif "della-" in node and "g" in node:
-          rows += leftpad("(MIG/res) ")
-        else:
-          rows += leftpad("(reserved)")
+        # modify next line to label reserved nodes
+        rows += " " * maxnode
       else:
         rows += " " * maxnode
       rows += " " + gpu_index + " "
@@ -125,7 +118,7 @@ def construct_dashboard(host):
     if (args.netid == "-1" or founduser_per_node) and offline < gpus_per_node[node]:
       s += rows
   # time labels at bottom of dashboard
-  if not host.startswith("della") and args.netid == "-1":
+  if args.netid == "-1":
     s += " " * (maxnode + 3)
     for t in times:
       s += padding(t)
@@ -166,76 +159,35 @@ if __name__ == "__main__":
 
       Show dashboard for all users without displaying legend:
         $ gpudash -n
-
-      Show dashboard for the cryoem nodes:
-        $ gpudash -c
-
-      Show dashboard for the cryoem nodes for user aturing:
-        $ gpudash -c -u aturing
     '''))
   psr.add_argument('-u', type=str, action='store', dest='netid',
     default='-1', help='create dashboard for a single user')
   psr.add_argument('-n', '--no-legend', action='store_true', help='flag to hide the legend')
-  psr.add_argument('-c', '--cryoem',    action='store_true', help='flag to show cryoem nodes')
   args = psr.parse_args()
   show_legend = not args.no_legend
-  show_cryoem = args.cryoem
-
-  # exit if within 4 hours of downtime (which starts at 6 am) or before 2 pm
-  right_now = datetime.now()
-  downtime_6am = second_tues_of_month(right_now.year, right_now.month)
-  dt_seconds = (right_now - downtime_6am) / timedelta(seconds=1)
-  seconds_per_hour = 60 * 60
-  if (dt_seconds > -4 * seconds_per_hour) and (dt_seconds < 6 * seconds_per_hour):
-    print("\nThis command is not available due to downtime. Please try again after 12 PM (noon):")
-    print("    https://researchcomputing.princeton.edu/support/knowledge-base/job-priority#downtime\n")
-    sys.exit(0)
 
   # load cluster-specific info
   host = gethostname()
-  if host.startswith("della-gpu") or host.startswith("della8"):
-    title = "DELLA-GPU"
-    comp_nodes_base = "della-"
-    if show_cryoem:
-      all_nodes = [comp_nodes_base + "l0" + str(h) + "g" + str(g) for h in range(6, 10) for g in range(1, 10)]
-      all_nodes.remove("della-l07g1")
-      all_nodes.append("della-l06g10")
-      all_nodes.append("della-l06g11")
-      nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo -p cryoem --Node -h")
-      gpus_per_node = dict([(node, 4) for node in all_nodes])
-    else:
-      #import pdb; pdb.set_trace()
-      all_nodes = [comp_nodes_base + "i14g" + str(g) for g in range(1, 21)]
-      gpus_per_node = dict([(node, 2) for node in all_nodes])
-      all_nodes80 = [comp_nodes_base + f"l0{h}g{g}" for h in range(1, 5) for g in range(1, 17)] + \
-                    [comp_nodes_base + f"l05g{g}" for g in range(1, 7)]
-      gpus_per_node.update(dict([(node, 4) for node in all_nodes80]))
-      all_nodes += all_nodes80
-      nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo -p gpu,mig --Node -h")
+  if host.startswith("cluster1"):
+    title = "CLUSTER1-GPU"
+    comp_nodes_base = "cluster1-"
+    all_nodes = [comp_nodes_base + "i14g" + str(g) for g in range(1, 21)]
+    gpus_per_node = dict([(node, 2) for node in all_nodes])
+    #nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo --partition=gpu --Node -h")
+    nodelist, reserved_nodes = all_nodes, []
     maxnode = max(map(len, nodelist))
     SBASE = "/scratch/.gpudash"
-  elif host.startswith("tigercpu") or host.startswith("tigergpu") or host.startswith("tiger-cryoem"):
-    title = "TigerGPU"
-    comp_nodes_base = "tiger-"
+  elif host.startswith("cluster2"):
+    title = "Cluster2-GPU"
+    comp_nodes_base = "cluster2-"
     all_nodes = [comp_nodes_base + "i" + str(i) + 'g' + str(j + 1) for i in range(19, 24) for j in range(16)]
     gpus_per_node = dict([(node, 4) for node in all_nodes])
-    nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo -p gpu --Node -h")
+    #nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo --partition=gpu --Node -h")
+    nodelist, reserved_nodes = all_nodes, []
     maxnode = max(map(len, nodelist))
     SBASE = "/scratch/.gpudash"
-    if show_cryoem: print("Warning: -c, --cryoem flag not valid on tiger")
-  elif host.startswith("traverse"):
-    title = "TRAVERSE GPU"
-    comp_nodes_base = "traverse-k0"
-    all_nodes = [comp_nodes_base + str(i) + 'g' + str(j + 1) for i in [1, 2, 4, 5] for j in range(12)]
-    all_nodes.remove("traverse-k05g11")
-    all_nodes.remove("traverse-k05g12")
-    gpus_per_node = dict([(node, 4) for node in all_nodes])
-    nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo --Node -h")
-    maxnode = max(map(len, nodelist))
-    SBASE = "/scratch/.gpudash"
-    if show_cryoem: print("Warning: -c, --cryoem flag not valid on traverse")
   else:
-    print(f"{host} is unknown. Please use della-gpu, tigercpu, tigergpu, tiger-cryoem or traverse.")
+    print(f"{host} is unknown.")
     sys.exit(0)
 
   # read column files
