@@ -42,7 +42,7 @@ The `gpudash` command builds on the [Jobstats platform](https://github.com/Princ
 
 #### 1. Create a script to pull data from Prometheus
 
-The `query_prometheus.sh` Bash script below makes three queries to Prometheus. Old files are removed. The `extract.py` Python script is called to extract the data and write columns files. The column files are read by `gpudash`.
+The `query_prometheus.sh` script below makes three queries to Prometheus. Old files are removed. The `extract.py` Python script is called to extract the data and write columns files. The column files are read by `gpudash`.
 
 ```bash
 $ cat query_prometheus.sh
@@ -63,7 +63,7 @@ find ${DATA} -type f -mmin +70 -exec rm -f {} \;
 python3 /path/to/extract.py
 ```
 
-The above script will generate column files with the format:
+Be sure to customize `nodelist` in `extract.py` for the given system. The above Bash script will generate column files with the format:
 
 ```
 $ head -n 5 column.1
