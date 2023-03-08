@@ -1,6 +1,6 @@
 # gpudash
 
-The `gpudash` command is part of the [Jobstats platform](https://github.com/PrincetonUniversity/jobstats). The `gpudash` command displays a GPU utilization dashboard for the last hour:
+The `gpudash` command is part of the [Jobstats platform](https://github.com/PrincetonUniversity/jobstats). The `gpudash` command displays a GPU utilization dashboard in text (no graphics) for the last hour:
 
 ![gpudash example](images/gpudash.png)
 
@@ -125,19 +125,7 @@ $ wget https://raw.githubusercontent.com/PrincetonUniversity/gpudash/main/gpudas
 $ chmod 755 gpudash
 ```
 
-Next, edit `gpudash` by entering the correct node names to display data for.
-
-```python
-  if host.startswith("cluster1"):
-    title = "CLUSTER1-GPU"
-    comp_nodes_base = "cluster1-"
-    all_nodes = [comp_nodes_base + "i14g" + str(g) for g in range(1, 21)]
-    gpus_per_node = dict([(node, 2) for node in all_nodes])
-    #nodelist, reserved_nodes = get_nodes(all_nodes, "timeout 3 sinfo --partition=gpu --Node -h")
-    nodelist, reserved_nodes = all_nodes, []
-    maxnode = max(map(len, nodelist))
-    SBASE = "/scratch/.gpudash"
-```
+Next, edit `gpudash` by replacing `cluster1` with the beginning of the cluster name. Modify `all_nodes` to generate a list of compute node names. Lastly, set `SBASE` to the path containing the column files produced by `extract.py`.
 
 With these steps in place, you can use the `gpudash` command:
 
