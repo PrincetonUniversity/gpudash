@@ -130,7 +130,7 @@ $ gpudash
 
 ## About the Design
 
-The choice was made to enter the node names in the script (i.e., `all_nodes`) as opposed to reading the Prometheus configuration file or using the output of the `sinfo` command. The code looks for data on each of the specified nodes and only updates the values for a given node if the data is found. Calling `sinfo` has the disadvantage of not having any node names if the command fails. One would also have to specify partitions. Reading the Prometheus server configuration file(s) is reasonable but changes would be required if Prometheous were swapped with an alternative.
+The choice was made to enter the node names in the script (i.e., `all_nodes`) as opposed to reading the Prometheus configuration file or using the output of the `sinfo` command. The code looks for data on each of the specified nodes and only updates the values for a given node if the data is found. Calling `sinfo` has the disadvantage of not having any node names if the command fails. One would also have to specify partitions. Reading the Prometheus server configuration file(s) is reasonable but changes would be required if Prometheus were swapped with an alternative.
 
 ## Troubleshooting
 
