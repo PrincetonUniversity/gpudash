@@ -106,7 +106,7 @@ The first entry above calls the script that queries the Prometheus server every 
 
 #### 4. Download gpudash
 
-`gpudash` is a pure Python code. It's only dependency is the `blessed` Python package. On Ubuntu Linux, this can be installed with:
+`gpudash` is a pure Python code. Its only dependency is the `blessed` Python package. On Ubuntu Linux, this can be installed with:
 
 ```bash
 $ apt-get install python-blessed
