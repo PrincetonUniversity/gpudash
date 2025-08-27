@@ -11,15 +11,15 @@ The dashboard can be generated for a specific user:
 The `gpudash` command is part of the [Jobstats platform](https://github.com/PrincetonUniversity/jobstats). Here is the help menu:
 
 ```
-usage: gpudash [-h] [-u NETID] [-n] [--me]
+usage: gpudash [-h] [--me] [-u NETID] [-n]
 
 GPU utilization dashboard for the last hour
 
 optional arguments:
   -h, --help       show this help message and exit
+  --me             create dashboard for current user
   -u NETID         create dashboard for a single user
   -n, --no-legend  flag to hide the legend
-  --me             create dashboard for current user
 
 Utilization is the percentage of time during a sampling window (< 1 second) that
 a kernel was running on the GPU. The format of each entry in the dashboard is
