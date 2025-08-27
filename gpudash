@@ -157,6 +157,9 @@ if __name__ == "__main__":
       Show dashboard for all users:
         $ gpudash
 
+      Show dashboard for the current user:
+        $ gpudash --me
+
       Show dashboard for the user aturing:
         $ gpudash -u aturing
 
@@ -164,10 +167,15 @@ if __name__ == "__main__":
         $ gpudash -n
     '''))
   psr.add_argument('-u', type=str, action='store', dest='netid',
-    default='-1', help='create dashboard for a single user')
+                   default='-1', help='create dashboard for a single user')
   psr.add_argument('-n', '--no-legend', action='store_true', help='flag to hide the legend')
+  psr.add_argument('--me', action='store_true', help='create dashboard for current user')
   args = psr.parse_args()
   show_legend = not args.no_legend
+  if args.me:
+    args.netid = os.getenv("USER")
+    if not args.netid:
+      args.netid = "-1"
 
   # load cluster-specific info
   host = gethostname()
