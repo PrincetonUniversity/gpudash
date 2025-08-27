@@ -61,6 +61,8 @@ def colorize(user, util):
   if text == "root:N/A":
     return term.on_gray + term.black + padding("NO INFO") + term.normal
   white = term.color_rgb(255,255,255)
+  if isinstance(util, int):
+    util = str(util)
   util = int(util) if util.isdigit() else -1
   if util == -1:
     return term.on_gray + term.black + padding(text) + term.normal
