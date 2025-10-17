@@ -158,6 +158,8 @@ with open(f"{BASE}/utilization.json", "a") as f, open(f"{SBASE}/column.7", "w") 
   for u, v in stats.items():
     hostname, gpu_index = u
     username, util, jobid = v
+    if username == "OFFLINE" and util == "0" and jobid == "N/A":
+      username = "root"
     d = {"timestamp":timestamp, "host":hostname, "index":gpu_index, "user":username, "util":util, "jobid":jobid}
     json.dump(d, f); f.write("\n")
     json.dump(d, g); g.write("\n")
